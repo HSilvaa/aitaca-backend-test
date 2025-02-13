@@ -1,4 +1,5 @@
 """
+--HOW TO USE--
 Abrir pgAdmin4 y conectarte al servidor
 
 Abrir la terminal de python y poner: uvicorn main:app --reload
@@ -31,17 +32,17 @@ from sqlalchemy.orm import sessionmaker, Session
 import os
 from dotenv import load_dotenv
 
-# Load environment variables
+#load .env
 load_dotenv()
 
-# Database configuration
+# Configuración DataBase
 DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 
-# Product Model
+# Product
 class Product(Base):
     __tablename__ = "products"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
@@ -61,14 +62,14 @@ class Product(Base):
             "quantity": self.quantity
         }
 
-# Create database tables
+# Create a database
 Base.metadata.create_all(bind=engine)
 
-# FastAPI instance
+# FastAPI
 app = FastAPI()
 
 
-# Dependency to get DB session
+# DB session
 def get_db():
     db = SessionLocal()
     try:
@@ -76,7 +77,7 @@ def get_db():
     finally:
         db.close()
 
-# Create a Product
+# Crear producto
 @app.post("/products", response_model=dict)
 def create_product(product: dict, db: Session = Depends(get_db)):
     # Crear el nuevo producto
@@ -96,19 +97,19 @@ def create_product(product: dict, db: Session = Depends(get_db)):
     }
 
 
-# Get All Products with Pagination
+# Coger todos los productos
 @app.get("/products", response_model=List[dict])
-def get_products(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+def get_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)): #Limite 100 y skip 0 de base
     # Consulta los productos desde la base de datos
     products = db.query(Product).offset(skip).limit(limit).all()
     # Convierte cada producto a un diccionario usando el método `to_dict`
-    return [product.to_dict() for product in products]
+    return [product.to_dict() for product in products] #Itera sobre los productos y los muestra en su modo .dict()
 
 
-# Get a Product by ID
+# Coger un producto por su ID
 @app.get("/products/{product_id}", response_model=dict)
 def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
-    # Busca el producto
+    # Busca el producto (hacer query)
     product = db.query(Product).filter(Product.id == product_id).first()
 
     # Si no encuentra el producto, lanza un error 404
@@ -119,14 +120,14 @@ def get_product_by_id(product_id: int, db: Session = Depends(get_db)):
     return product.to_dict()
 
 
-# Update a Product
+# Update a product
 @app.put("/products/{product_id}", response_model=dict)
 def update_product(product_id: int, updated_data: dict, db: Session = Depends(get_db)):
-    product = db.query(Product).filter(Product.id == product_id).first()
+    product = db.query(Product).filter(Product.id == product_id).first() #hacer la query al producto
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
 
-    for key, value in updated_data.items():
+    for key, value in updated_data.items(): #Por cada elemento, lo cambia del producto quw habia
         setattr(product, key, value)
 
     db.commit()
